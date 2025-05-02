@@ -4,14 +4,13 @@ const difficultySelect = document.getElementById("difficulty");
 const statusEl = document.getElementById("status");
 
 const emojis = ["🐶", "🍕", "🚗", "🌈", "🐱", "🍎", "🎵", "⚽"];
-let cards = [];
 let flippedCards = [];
 let matched = 0;
 let mode = "easy";
-let timer;
+let timer = null;
 let timeLeft = 60;
 let flipLimit = 30;
-let currentFlips = 30;
+let currentFlips = 0;
 
 startBtn.addEventListener("click", startGame);
 
@@ -20,8 +19,13 @@ function startGame() {
   statusEl.textContent = "";
   matched = 0;
   currentFlips = 0;
-  mode = difficultySelect.value;
   flippedCards = [];
+  mode = difficultySelect.value;
+
+  if (timer) {
+    clearInterval(timer);
+    timer = null;
+  }
 
   const fullset = [...emojis, ...emojis];
   const shuffled = fullset.sort(() => Math.random() - 0.5);
@@ -44,12 +48,12 @@ function startGame() {
       updateStatus(`Time: ${timeLeft}`);
       if (timeLeft <= 0) {
         clearInterval(timer);
-        endGame("Times up");
+        endGame("Time's up!");
       }
     }, 1000);
   } else if (mode === "hard") {
     flipLimit = 30;
-    updateStatus(`Flips left ${flipLimit}`);
+    updateStatus(`Flips left: ${flipLimit}`);
   }
 }
 
@@ -59,7 +63,8 @@ function handleFlip(e) {
   if (
     card.classList.contains("flipped") ||
     card.classList.contains("matched") ||
-    flippedCards >= 2
+    flippedCards.length >= 2 ||
+    (flippedCards.length === 1 && flippedCards[0] === card)
   ) {
     return;
   }
@@ -70,9 +75,10 @@ function handleFlip(e) {
 
   if (mode === "hard") {
     currentFlips++;
-    updateStatus(`flips left: ${flipLimit - currentFlips}`);
-    if (currentFlips >= flipLimit) {
-      endGame(`out of flips`);
+    const flipsLeft = flipLimit - currentFlips;
+    updateStatus(`Flips left: ${flipsLeft}`);
+    if (flipsLeft <= 0) {
+      endGame("Out of flips!");
       return;
     }
   }
@@ -84,8 +90,9 @@ function handleFlip(e) {
       second.classList.add("matched");
       flippedCards = [];
       matched++;
+
       if (matched === emojis.length) {
-        clearInterval(timer);
+        if (timer) clearInterval(timer);
         setTimeout(() => endGame("You won!!!"), 300);
       }
     } else {
@@ -104,6 +111,12 @@ function endGame(message) {
   document
     .querySelectorAll(".card")
     .forEach((card) => card.removeEventListener("click", handleFlip));
+
+  if (timer) {
+    clearInterval(timer);
+    timer = null;
+  }
+
   statusEl.textContent = message;
 }
 
